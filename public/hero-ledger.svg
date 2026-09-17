@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="heroTitle">
+  <title id="heroTitle">Spreadsheet preview</title>
+  <rect width="960" height="640" rx="32" fill="#f4f4f5"/>
+  <rect x="48" y="48" width="864" height="544" rx="24" fill="#ffffff" stroke="#e4e4e7"/>
+  <rect x="48" y="48" width="864" height="72" rx="24" fill="#18181b"/>
+  <rect x="48" y="96" width="864" height="24" fill="#18181b"/>
+  <text x="80" y="94" fill="#fafafa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="600">Monthly ledger</text>
+  <rect x="80" y="152" width="180" height="16" rx="8" fill="#d4d4d8"/>
+  <rect x="300" y="152" width="280" height="16" rx="8" fill="#d4d4d8"/>
+  <rect x="620" y="152" width="120" height="16" rx="8" fill="#d4d4d8"/>
+  <rect x="780" y="152" width="90" height="16" rx="8" fill="#d4d4d8"/>
+  <rect x="80" y="200" width="800" height="52" rx="12" fill="#f4f4f5"/>
+  <rect x="80" y="268" width="800" height="52" rx="12" fill="#fafafa"/>
+  <rect x="80" y="336" width="800" height="52" rx="12" fill="#f4f4f5"/>
+  <rect x="80" y="404" width="800" height="52" rx="12" fill="#fafafa"/>
+  <rect x="80" y="472" width="800" height="52" rx="12" fill="#f4f4f5"/>
+  <rect x="80" y="540" width="220" height="20" rx="10" fill="#18181b"/>
+</svg>

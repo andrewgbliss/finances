@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="520" viewBox="0 0 800 520" role="img" aria-labelledby="mapTitle">
+  <title id="mapTitle">Map of Ledger headquarters</title>
+  <rect width="800" height="520" rx="28" fill="#e4e4e7"/>
+  <rect x="40" y="40" width="720" height="440" rx="20" fill="#fafafa"/>
+  <path d="M80 180h640M80 260h640M80 340h640M200 80v360M360 80v360M520 80v360M640 80v360" stroke="#d4d4d8" stroke-width="8"/>
+  <circle cx="430" cy="250" r="28" fill="#18181b"/>
+  <circle cx="430" cy="250" r="10" fill="#fafafa"/>
+  <rect x="300" y="400" width="260" height="48" rx="12" fill="#18181b"/>
+  <text x="430" y="430" text-anchor="middle" fill="#fafafa" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18">120 Market Street</text>
+</svg>
