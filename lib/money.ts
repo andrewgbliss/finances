@@ -2,7 +2,12 @@ export function dollarsToCents(value: string | number): number {
   const parsed =
     typeof value === "number"
       ? value
-      : Number.parseFloat(value.replace(/[$,\s]/g, ""));
+      : Number.parseFloat(
+          value
+            .replace(/[$,\s]/g, "")
+            .replace(/\/mo.*$/i, "")
+            .replace(/permonth.*$/i, "")
+        );
 
   if (!Number.isFinite(parsed)) {
     return 0;
@@ -25,6 +30,15 @@ export function formatCents(cents: number): string {
     style: "currency",
     currency: "USD",
   }).format(dollars);
+}
+
+export function formatCentsCompact(cents: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(cents / 100);
 }
 
 export function percentToBps(value: string | number): number {

@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { getSession } from "@/lib/session";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,10 +21,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Ledger — Personal finances",
   description:
-    "Track budgets, income, and spending in a private spreadsheet workspace.",
+    "Read budgets, savings, and debt from a Google Sheet after Google sign-in.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const session = await getSession();
+
   return (
     <html
       lang="en"
@@ -33,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <TooltipProvider>
-            <SiteHeader />
+            <SiteHeader isLoggedIn={Boolean(session)} />
             <main className="flex-1">{children}</main>
             <SiteFooter />
             <BackToTop />

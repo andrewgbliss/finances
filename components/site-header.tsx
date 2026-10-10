@@ -20,10 +20,10 @@ const navItems = [
   { href: "/finances", label: "Finances" },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-4">
+      <div className="mx-auto flex h-14 w-full items-center justify-between px-4 lg:px-6">
         <Link href="/" className="font-heading text-base font-semibold tracking-tight">
           Ledger
         </Link>
@@ -43,10 +43,13 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           <ModeToggle />
           <Link
-            href="/finances"
-            className={cn(buttonVariants(), "hidden md:inline-flex")}
+            href={isLoggedIn ? "/profile" : "/login"}
+            className={cn(
+              buttonVariants({ variant: isLoggedIn ? "outline" : "default" }),
+              "hidden md:inline-flex"
+            )}
           >
-            Open finances
+            {isLoggedIn ? "Profile" : "Log in"}
           </Link>
 
           <Sheet>
@@ -74,10 +77,10 @@ export function SiteHeader() {
                   </Link>
                 ))}
                 <Link
-                  href="/finances"
+                  href={isLoggedIn ? "/profile" : "/login"}
                   className={cn(buttonVariants(), "justify-start")}
                 >
-                  Open finances
+                  {isLoggedIn ? "Profile" : "Log in"}
                 </Link>
               </div>
             </SheetContent>

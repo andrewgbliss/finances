@@ -5,8 +5,8 @@ const footerColumns = [
     title: "Product",
     links: [
       { href: "/finances", label: "Finances" },
-      { href: "/finances", label: "Budget sheet" },
-      { href: "/#about", label: "How it works" },
+      { href: "/login", label: "Log in" },
+      { href: "/profile", label: "Profile" },
     ],
   },
   {
@@ -20,9 +20,9 @@ const footerColumns = [
   {
     title: "Resources",
     links: [
-      { href: "/finances", label: "Runway" },
-      { href: "/finances", label: "Savings" },
-      { href: "/finances", label: "Credit cards" },
+      { href: "/#about", label: "How it works" },
+      { href: "/finances", label: "Google Sheets" },
+      { href: "/login", label: "Connect Google" },
     ],
   },
 ];
@@ -34,8 +34,8 @@ export function SiteFooter() {
         <div>
           <p className="font-heading text-base font-semibold">Ledger</p>
           <p className="mt-2 max-w-xs text-sm text-muted-foreground">
-            A private workspace for budgets, income, and the numbers that actually
-            matter. Everything stays in this browser.
+            A read-only workspace that pulls expenses, savings, debt, and actions
+            from a Google Sheet.
           </p>
         </div>
         {footerColumns.map((column) => (
@@ -58,7 +58,7 @@ export function SiteFooter() {
       </div>
       <div className="border-t">
         <p className="mx-auto max-w-6xl px-4 py-4 text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Ledger. All amounts stored in cents.
+          © {new Date().getFullYear()} Ledger. Amounts are stored as integer cents.
         </p>
       </div>
     </footer>

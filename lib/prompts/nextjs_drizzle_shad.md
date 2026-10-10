@@ -29,11 +29,13 @@ https://orm.drizzle.team/docs/get-started/postgresql-new
 
 Add drizzle commands to the package.json db:push, db:generate, db:migrate
 
-Create a simple users table.
+Create a simple users table to store Oauth tokens from Google Oauth. Be able to setup secret tokens. Dont store username or passwords.
 
 ## Docker
 
 Create a docker-compose.yml file that has the postgres database. Use the env defaults and setup a localhost connection with a database called test-db
+
+Don't have the folder sync to the local repo as in data/postgres.
 
 ## Shad CN
 
@@ -63,8 +65,8 @@ npx shadcn@latest add -all
 
 ## Create a login page
 
-- Using drizzle and the users table, create a login form using server actions and set a cookie for login.
-- Then create a user profile page that is behind the auth token.
+- Using drizzle and the users table, create a login page with goole oauth. only store what is needed. no passwords or emails.
+- Then create a user profile page that is behind the auth.
 
 ## Create a finances page
 

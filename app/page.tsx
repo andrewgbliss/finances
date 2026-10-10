@@ -13,12 +13,12 @@ export default function HomePage() {
             See the month clearly before the money disappears.
           </h1>
           <p className="max-w-lg text-base leading-7 text-muted-foreground">
-            Ledger keeps budget, income, and a spreadsheet-style ledger in one
-            place. Amounts are stored as integer cents so the totals stay honest.
-            Everything lives in this browser — there is no account to create.
+            Ledger reads expenses, savings, debt, and actions from a Google
+            Sheet. Sign in with Google, pick a spreadsheet, and keep the numbers
+            as integer cents.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link href="/finances" className={cn(buttonVariants({ size: "lg" }))}>
+            <Link href="/login" className={cn(buttonVariants({ size: "lg" }))}>
               Get started
             </Link>
             <Link
@@ -49,28 +49,29 @@ export default function HomePage() {
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:col-span-2">
             <div>
-              <h3 className="font-medium">Budget first</h3>
+              <h3 className="font-medium">Google sign-in</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Set category limits, then edit them in place as the month changes.
+                Connect with Google OAuth and grant Sheets access. Tokens are
+                stored. Email and passwords are not.
               </p>
             </div>
             <div>
-              <h3 className="font-medium">Income in view</h3>
+              <h3 className="font-medium">Pick a sheet</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Record paychecks and side income so remaining cash is never a guess.
+                Choose which spreadsheet to read. Ledger never writes back to it.
               </p>
             </div>
             <div>
-              <h3 className="font-medium">Spreadsheet ledger</h3>
+              <h3 className="font-medium">Five tabs</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Add rows, edit cells, and keep a running record of every outflow.
+                Expenses, Savings, Income, Debt, and Actions map to the columns
+                in your sheet.
               </p>
             </div>
             <div>
-              <h3 className="font-medium">Stays on this device</h3>
+              <h3 className="font-medium">Read only</h3>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Your numbers are saved in local storage. Nothing is sent to a
-                database or login service.
+                Edit numbers in Google Sheets. This app only displays them.
               </p>
             </div>
           </div>

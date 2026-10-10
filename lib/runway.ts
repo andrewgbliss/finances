@@ -1,15 +1,47 @@
+import {
+  isKnownDebtType,
+  type DebtRow,
+  type ExpenseRow,
+  type FinanceWorkbook,
+  type SavingsRow,
+} from "@/lib/sheet-finance";
+
 const DAYS_PER_MONTH = 30;
 const MAX_CHART_MONTHS = 24;
+const MAX_DEBT_CHART_MONTHS = 60;
 
-export type SpendSource = "budget" | "ledger" | "none";
+const INVESTED_TYPES = new Set(["retirement", "stocks", "stock", "brokerage"]);
+
+export type SpendSource = "expenses" | "none";
 
 export type RunwayPoint = {
   label: string;
   remainingCents: number;
 };
 
+export type NamedAmount = {
+  name: string;
+  amountCents: number;
+};
+
+export type DebtPayoff = {
+  name: string;
+  amountCents: number;
+  minimumPaymentCents: number;
+  months: number | null;
+  payoffLabel: string | null;
+  capped: boolean;
+};
+
+export type DebtPayoffPoint = {
+  label: string;
+  remainingCents: number;
+};
+
 export type RunwayProjection = {
   cashOnHandCents: number;
+  investedCents: number;
+  debtCents: number;
   monthlySpendCents: number;
   monthlyIncomeCents: number;
   netBurnCents: number;
@@ -19,19 +51,13 @@ export type RunwayProjection = {
   reachesZero: boolean;
   zeroDateLabel: string | null;
   points: RunwayPoint[];
+  expenses: NamedAmount[];
+  income: NamedAmount[];
+  savingsByType: NamedAmount[];
+  debts: NamedAmount[];
+  debtPayoffs: DebtPayoff[];
+  debtPayoffPoints: DebtPayoffPoint[];
 };
-
-type TransactionLike = {
-  date: string;
-  amountCents: number;
-};
-
-function roundDivide(numerator: number, denominator: number): number {
-  if (denominator <= 0) {
-    return 0;
-  }
-  return Math.trunc((numerator + Math.trunc(denominator / 2)) / denominator);
-}
 
 function addCalendarMonths(date: Date, months: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + months, date.getDate());
@@ -58,38 +84,74 @@ function formatDayLabel(date: Date): string {
   }).format(date);
 }
 
-export function averageMonthlySpendCents(
-  transactions: TransactionLike[]
-): number {
-  if (transactions.length === 0) {
-    return 0;
-  }
-
-  const byMonth = new Map<string, number>();
-  for (const transaction of transactions) {
-    const key = transaction.date.slice(0, 7);
-    byMonth.set(key, (byMonth.get(key) ?? 0) + transaction.amountCents);
-  }
-
-  let total = 0;
-  for (const amount of byMonth.values()) {
-    total += amount;
-  }
-
-  return roundDivide(total, byMonth.size);
+function isInvestedSavings(type: string): boolean {
+  return INVESTED_TYPES.has(type.trim().toLowerCase());
 }
 
-export function resolveMonthlySpend(input: {
-  budgetCents: number;
-  transactions: TransactionLike[];
-}): { monthlySpendCents: number; spendSource: SpendSource } {
-  if (input.budgetCents > 0) {
-    return { monthlySpendCents: input.budgetCents, spendSource: "budget" };
+export function liquidSavingsCents(savings: SavingsRow[]): number {
+  return savings.reduce((total, row) => {
+    if (isInvestedSavings(row.type)) {
+      return total;
+    }
+    return total + row.amountCents;
+  }, 0);
+}
+
+export function investedSavingsCents(savings: SavingsRow[]): number {
+  return savings.reduce((total, row) => {
+    if (!isInvestedSavings(row.type)) {
+      return total;
+    }
+    return total + row.amountCents;
+  }, 0);
+}
+
+export function sumAmountCents(rows: Array<{ amountCents: number }>): number {
+  return rows.reduce((total, row) => total + row.amountCents, 0);
+}
+
+export function isDebtCountedAsExpense(
+  row: ExpenseRow,
+  debts: DebtRow[]
+): boolean {
+  if (row.type && isKnownDebtType(row.type)) {
+    return true;
   }
 
-  const ledgerSpend = averageMonthlySpendCents(input.transactions);
-  if (ledgerSpend > 0) {
-    return { monthlySpendCents: ledgerSpend, spendSource: "ledger" };
+  const expenseName = row.name.trim().toLowerCase();
+  return debts.some(
+    (debt) =>
+      debt.name.trim().toLowerCase() === expenseName &&
+      debt.amountCents === row.costCents &&
+      debt.amountCents > 0
+  );
+}
+
+export function monthlyExpenseRows(
+  workbook: FinanceWorkbook
+): ExpenseRow[] {
+  return (workbook.expenses ?? []).filter(
+    (row) => !isDebtCountedAsExpense(row, workbook.debt ?? [])
+  );
+}
+
+export function resolveMonthlySpend(workbook: FinanceWorkbook): {
+  monthlySpendCents: number;
+  spendSource: SpendSource;
+} {
+  if ((workbook.expenseFinalTotalCents ?? 0) > 0) {
+    return {
+      monthlySpendCents: workbook.expenseFinalTotalCents,
+      spendSource: "expenses",
+    };
+  }
+
+  const fromCost = monthlyExpenseRows(workbook).reduce(
+    (total, row) => total + row.costCents,
+    0
+  );
+  if (fromCost > 0) {
+    return { monthlySpendCents: fromCost, spendSource: "expenses" };
   }
 
   return { monthlySpendCents: 0, spendSource: "none" };
@@ -116,34 +178,173 @@ export function formatRunwayDuration(totalDays: number): string {
   return `${monthLabel}, ${dayLabel}`;
 }
 
-export function buildRunwayProjection(input: {
-  cashOnHandCents: number;
-  budgetCents: number;
-  incomeCents: number;
-  transactions: TransactionLike[];
-  from?: Date;
-}): RunwayProjection {
-  const from = input.from ?? new Date();
-  const { monthlySpendCents, spendSource } = resolveMonthlySpend({
-    budgetCents: input.budgetCents,
-    transactions: input.transactions,
-  });
-  const monthlyIncomeCents = input.incomeCents > 0 ? input.incomeCents : 0;
-  const netBurnCents = monthlySpendCents - monthlyIncomeCents;
-  const cashOnHandCents = input.cashOnHandCents > 0 ? input.cashOnHandCents : 0;
+export function formatPayoffMonths(months: number): string {
+  if (months <= 0) {
+    return "Paid off";
+  }
+
+  const years = Math.trunc(months / 12);
+  const leftoverMonths = months % 12;
+  if (years === 0) {
+    return months === 1 ? "1 month" : `${months} months`;
+  }
+
+  const yearLabel = years === 1 ? "1 year" : `${years} years`;
+  if (leftoverMonths === 0) {
+    return yearLabel;
+  }
+
+  const monthLabel =
+    leftoverMonths === 1 ? "1 month" : `${leftoverMonths} months`;
+  return `${yearLabel}, ${monthLabel}`;
+}
+
+export function monthsToPayOff(
+  amountCents: number,
+  minimumPaymentCents: number
+): number | null {
+  if (amountCents <= 0) {
+    return 0;
+  }
+  if (minimumPaymentCents <= 0) {
+    return null;
+  }
+  return Math.ceil(amountCents / minimumPaymentCents);
+}
+
+export function buildDebtPayoffs(
+  debts: DebtRow[],
+  from: Date = new Date()
+): { payoffs: DebtPayoff[]; points: DebtPayoffPoint[] } {
+  const payoffs = debts
+    .filter((row) => row.amountCents > 0)
+    .map((row) => {
+      const months = monthsToPayOff(row.amountCents, row.minimumPaymentCents);
+      const capped = months !== null && months > MAX_DEBT_CHART_MONTHS;
+      return {
+        name: row.name,
+        amountCents: row.amountCents,
+        minimumPaymentCents: row.minimumPaymentCents,
+        months,
+        payoffLabel:
+          months === null
+            ? null
+            : formatMonthLabel(addCalendarMonths(from, months)),
+        capped,
+      };
+    })
+    .sort((a, b) => (b.months ?? -1) - (a.months ?? -1));
+
+  const chartMonths = Math.min(
+    MAX_DEBT_CHART_MONTHS,
+    Math.max(
+      12,
+      ...payoffs.map((item) => item.months ?? 0),
+      0
+    )
+  );
+
+  const points: DebtPayoffPoint[] = [];
+  for (let month = 0; month <= chartMonths; month += 1) {
+    const remainingCents = debts.reduce((total, row) => {
+      if (row.minimumPaymentCents <= 0) {
+        return total + Math.max(0, row.amountCents);
+      }
+      return total + Math.max(0, row.amountCents - row.minimumPaymentCents * month);
+    }, 0);
+
+    points.push({
+      label: month === 0 ? "Now" : formatMonthLabel(addCalendarMonths(from, month)),
+      remainingCents,
+    });
+
+    if (month > 0 && remainingCents === 0) {
+      break;
+    }
+  }
+
+  return { payoffs, points };
+}
+
+function aggregateByName(
+  rows: Array<{ name: string; amountCents: number }>
+): NamedAmount[] {
+  const byName = new Map<string, number>();
+  for (const row of rows) {
+    byName.set(row.name, (byName.get(row.name) ?? 0) + row.amountCents);
+  }
+
+  return [...byName.entries()]
+    .map(([name, amountCents]) => ({ name, amountCents }))
+    .filter((row) => row.amountCents !== 0)
+    .sort((a, b) => b.amountCents - a.amountCents);
+}
+
+export function buildWorkbookRunway(
+  workbook: FinanceWorkbook,
+  from: Date = new Date()
+): RunwayProjection {
+  const cashOnHandCents = Math.max(0, liquidSavingsCents(workbook.savings));
+  const investedCents = investedSavingsCents(workbook.savings);
+  const debtCents = sumAmountCents(workbook.debt);
+  const { monthlySpendCents, spendSource } = resolveMonthlySpend(workbook);
+  const monthlyIncomeCents = sumAmountCents(workbook.income);
+  const netBurnCents = monthlySpendCents;
+  const expenses = monthlyExpenseRows(workbook)
+    .map((row) => ({
+      name: row.name,
+      amountCents: row.costCents,
+    }))
+    .filter((row) => row.amountCents > 0)
+    .sort((a, b) => b.amountCents - a.amountCents);
+  const income = workbook.income
+    .map((row) => ({
+      name: row.name,
+      amountCents: row.amountCents,
+    }))
+    .filter((row) => row.amountCents > 0)
+    .sort((a, b) => b.amountCents - a.amountCents);
+  const savingsByType = aggregateByName(
+    workbook.savings.map((row) => ({
+      name: row.type || "Other",
+      amountCents: row.amountCents,
+    }))
+  );
+  const debts = workbook.debt
+    .map((row) => ({
+      name: row.name,
+      amountCents: row.amountCents,
+    }))
+    .filter((row) => row.amountCents !== 0)
+    .sort((a, b) => b.amountCents - a.amountCents);
+  const { payoffs: debtPayoffs, points: debtPayoffPoints } = buildDebtPayoffs(
+    workbook.debt,
+    from
+  );
+  const breakdown = {
+    expenses,
+    income,
+    savingsByType,
+    debts,
+    debtPayoffs,
+    debtPayoffPoints,
+  };
 
   if (netBurnCents <= 0) {
-    const points: RunwayPoint[] = [];
     const monthlyChange = -netBurnCents;
+    const points: RunwayPoint[] = [];
     for (let month = 0; month <= 12; month += 1) {
       points.push({
-        label: month === 0 ? "Now" : formatMonthLabel(addCalendarMonths(from, month)),
+        label:
+          month === 0 ? "Now" : formatMonthLabel(addCalendarMonths(from, month)),
         remainingCents: cashOnHandCents + month * monthlyChange,
       });
     }
 
     return {
       cashOnHandCents,
+      investedCents,
+      debtCents,
       monthlySpendCents,
       monthlyIncomeCents,
       netBurnCents,
@@ -153,12 +354,15 @@ export function buildRunwayProjection(input: {
       reachesZero: false,
       zeroDateLabel: null,
       points,
+      ...breakdown,
     };
   }
 
   if (cashOnHandCents === 0) {
     return {
       cashOnHandCents,
+      investedCents,
+      debtCents,
       monthlySpendCents,
       monthlyIncomeCents,
       netBurnCents,
@@ -168,6 +372,7 @@ export function buildRunwayProjection(input: {
       reachesZero: true,
       zeroDateLabel: formatDayLabel(from),
       points: [{ label: "Now", remainingCents: 0 }],
+      ...breakdown,
     };
   }
 
@@ -203,14 +408,17 @@ export function buildRunwayProjection(input: {
 
   return {
     cashOnHandCents,
+    investedCents,
+    debtCents,
     monthlySpendCents,
     monthlyIncomeCents,
     netBurnCents,
     spendSource,
     totalDays,
     capped,
-    reachesZero: !capped && cashOnHandCents >= 0,
+    reachesZero: !capped,
     zeroDateLabel: capped ? null : formatDayLabel(addDays(from, totalDays)),
     points,
+    ...breakdown,
   };
 }
